@@ -5,17 +5,20 @@ I've made this tool with some ideas : light (<1MB), fast (<3s for 300MB on my co
 This software is provided without any garanties, use it at your own risk.
 
 
-#License:
+# License:
+
 Tool under GNU version 3 license.
 
 #Description:
+
 First of all, this program is not supported or affiliated with QNAP Systems Inc.
 It is a small tool to decipher files ciphered with Hybrid Backup Sync with cloud providers.
 It requests the user password and cannot be affiliated with any hacking tool.
 Both GUI and CLI executables are provided, to be used in script environment or directly by user.
 After each decipher operation, the result plain file is compared to original plain file by a digest method (or by size in new HBS files >2.1).
 
-#Compatibility:
+# Compatibility:
+
 As a JAVA tool, this tool should be compatible with a large variety of OS, as long as a JRE 7+ is installed and configured with Unlimited JCE (a simple copy&past).
 
 Requirements:
@@ -37,7 +40,8 @@ IMPORTANT NOTES FOR MAC USERS :
 JRE: /Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/jre/lib/security
 JDK: /Library/Java/JavaVirtualMachines/jdk1.x.x_xxx.jdk/Contents/Home/jre/lib/security
 
-#How to decipher a file (summarized):
+# How to decipher a file (summarized):
+
 Pre. You need to download files from your provider to access them locally. Executable must be unzipped
 
 In CLI :
@@ -58,3 +62,8 @@ Note : you can choose a folder as source or destination.
 If a folder is chosen as source, the destination MUST be a folder too.
 If a folder is chosen as destination but the source is a file, a file with the same name will be created in destination folder.
 If the source and the destination are the same file or folder, a new file will be created, with same name prefixed by "plain_".
+
+# Version
+
+Compiled version 1.1 can be found here (with sources and GUI included too) :
+https://mega.nz/#!bIBDDJjT!WmQB5idA7Rezzup7lU-k-5sAys14fQJGAvJJv2nRGrQ
