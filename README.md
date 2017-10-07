@@ -9,7 +9,7 @@ This software is provided without any garanties, use it at your own risk.
 
 Tool under GNU version 3 license.
 
-#Description:
+# Description:
 
 First of all, this program is not supported or affiliated with QNAP Systems Inc.
 It is a small tool to decipher files ciphered with Hybrid Backup Sync with cloud providers.
