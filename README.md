@@ -2,7 +2,7 @@
 Currently there is no official tool to decipher files from Hybrid Backup Sync (on QNAP devices) on all plateform.
 I've made this tool with some ideas : light (<1MB), fast (<3s for 300MB on my computer), universal, open source, with as less as possible dependencies.
 
-This software is provided without any garanties, use it at your own risk.
+This software is provided without any warranties, use it at your own risk.
 
 
 # License:
@@ -19,7 +19,7 @@ After each decipher operation, the result plain file is compared to original pla
 
 # Compatibility:
 
-As a JAVA tool, this tool should be compatible with a large variety of OS, as long as a JRE 7+ is installed and configured with Unlimited JCE (a simple copy&past).
+As a JAVA tool, this tool should be compatible with a large variety of OS, as long as a JRE 7+ is installed.
 
 Requirements:
 - At least 512 MB of system memory. Recommended minimum is 1 GB.
@@ -28,13 +28,17 @@ Requirements:
 http://www.oracle.com/technetwork/java/index.html
 or OpenJDK 7+, can be found here:
 http://openjdk.java.net/	
+
+---- Deprecated if you are using JAVA after update 151 ----
 - Unlimited JCE policy for your JAVA version, can be found here:
 JAVA 7 : http://www.oracle.com/technetwork/java/ ... 32124.html
 JAVA 8 : http://www.oracle.com/technetwork/java/ ... 33166.html
 WARNING: without it JAVA cannot use AES 256 (used by Hybrid Backup Sync) so this tool cannot work. After each JAVA update, JCE policy must be re-applied.
+----
+
 - Tested on Windows 10 64bits, CentOS 6 32 bits, Oracle JRE 7 and Oracle JRE 8
 
-IMPORTANT NOTES FOR MAC USERS :
+** IMPORTANT : notes for MAC users BEFORE UPDATE 151 : **
 - for password field, use Ctrl+C / Ctrl+V to copy and past.
 - for JCE, change in 2 locations :
 JRE: /Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/jre/lib/security
