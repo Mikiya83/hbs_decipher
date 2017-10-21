@@ -34,7 +34,7 @@ http://openjdk.java.net/
 JAVA 7 : http://www.oracle.com/technetwork/java/ ... 32124.html
 JAVA 8 : http://www.oracle.com/technetwork/java/ ... 33166.html
 WARNING: without it JAVA cannot use AES 256 (used by Hybrid Backup Sync) so this tool cannot work. After each JAVA update, JCE policy must be re-applied.
-----
+----------------------
 
 - Tested on Windows 10 64bits, CentOS 6 32 bits, Oracle JRE 7 and Oracle JRE 8
 
