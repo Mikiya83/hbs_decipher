@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.util.Arrays;
 
 import javax.crypto.Cipher;
@@ -90,7 +91,23 @@ public class QNAPFileDecrypter {
 			if (verboseMode) {
 				System.out.println("Check JCE policy...");
 			}
-			if (Cipher.getMaxAllowedKeyLength("AES") < AES_KEY_STRENGTH) {
+			boolean jceApplied = false;
+			try {
+				// try the property after update 151
+				Security.setProperty("crypto.policy", "unlimited");
+				if (Cipher.getMaxAllowedKeyLength("AES") >= AES_KEY_STRENGTH) {
+					// Update applied so property can be set !
+					jceApplied = true;
+				}
+			} catch (SecurityException exc) {
+				// Cannot write permission, do not crash on it it can be normal,
+				// try to override JCE file next
+			} catch (NoSuchAlgorithmException exc2) {
+				System.err.println("JAVA version not supported, AES missing.");
+				System.exit(1);
+			}
+
+			if (Cipher.getMaxAllowedKeyLength("AES") < AES_KEY_STRENGTH && !jceApplied) {
 				String linkJCE = "Link not found for JCE policy";
 				if (System.getProperty("java.version").startsWith(JAVA_7_VERSION)) {
 					linkJCE = JAVA_7_JCE;
