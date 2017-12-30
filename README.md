@@ -66,8 +66,3 @@ Note : you can choose a folder as source or destination.
 If a folder is chosen as source, the destination MUST be a folder too.
 If a folder is chosen as destination but the source is a file, a file with the same name will be created in destination folder.
 If the source and the destination are the same file or folder, a new file will be created, with same name prefixed by "plain_".
-
-# Version
-
-Compiled version 1.1 can be found here (with sources and GUI included too) :
-https://mega.nz/#!bIBDDJjT!WmQB5idA7Rezzup7lU-k-5sAys14fQJGAvJJv2nRGrQ
