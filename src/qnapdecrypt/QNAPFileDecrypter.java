@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.util.Arrays;
@@ -31,6 +33,8 @@ public class QNAPFileDecrypter {
 
 	private static boolean dirMode = false;
 
+	private static boolean recursiveMode = false;
+
 	private static final String JAVA_7_JCE = "http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html";
 
 	private static final String JAVA_7_VERSION = "1.7";
@@ -44,6 +48,8 @@ public class QNAPFileDecrypter {
 	private static final String PLAIN_FILE_OPTION = "o";
 
 	private static final String PLAIN_NAME_PREFIX = "plain_";
+
+	private static final String RECURSIVE_OPTION = "r";
 
 	private static final String VERBOSE_OPTION = "v";
 
@@ -79,6 +85,10 @@ public class QNAPFileDecrypter {
 
 		if (commandlineOptions.hasOption(VERBOSE_OPTION)) {
 			verboseMode = true;
+		}
+
+		if (commandlineOptions.hasOption(RECURSIVE_OPTION)) {
+			recursiveMode = true;
 		}
 
 		if (verboseMode) {
@@ -180,25 +190,49 @@ public class QNAPFileDecrypter {
 			}
 			engine.doDecipherFile(cipherFile, outputFile, password);
 		} else {
-			File cipherDir = cipherFile;
-			File plainDir = plainFile;
+			decipherMultipleFiles(cipherFile, plainFile, password, engine);
+		}
+	}
 
-			String[] cipheredListFiles = cipherDir.list();
-			for (String eachCipheredFileName : cipheredListFiles) {
+	private static void decipherMultipleFiles(File cipherFile, File plainFile, String password,
+			QNAPFileDecrypterEngine engine) {
+		File cipherDir = cipherFile;
+		File plainDir = plainFile;
+
+		String[] cipheredListFiles = cipherDir.list();
+		for (String eachCipheredFileName : cipheredListFiles) {
+
+			String eachPlainFileName = eachCipheredFileName;
+			if (cipherDir.equals(plainDir)) {
+				eachPlainFileName = PLAIN_NAME_PREFIX + eachCipheredFileName;
+			}
+			File eachCipherFile = new File(cipherDir + File.separator + eachCipheredFileName);
+			File eachPlainFile = new File(plainDir + File.separator + eachPlainFileName);
+
+			// Check recursive mode
+			if (recursiveMode && eachCipherFile.isDirectory() && eachCipherFile.canRead()) {
+				if (verboseMode) {
+					System.out.println(System.lineSeparator() + "Enter in directory : " + eachCipheredFileName);
+				}
+				String newPlainDir = plainDir + File.separator + eachCipheredFileName;
+				String newCipherDir = cipherDir + File.separator + eachPlainFileName;
+				try {
+					if (!Files.isDirectory(Paths.get(newPlainDir))) {
+						Files.createDirectory(Paths.get(newPlainDir));
+					}
+					decipherMultipleFiles(new File(newCipherDir), new File(newPlainDir), password, engine);
+				} catch (IOException e) {
+					System.out.println("Cannot create directory for recursive mode.");
+				}
+			} else {
 				if (verboseMode) {
 					System.out.println(System.lineSeparator() + "Trying to decipher file : " + eachCipheredFileName);
 				}
-				String eachPlainFileName = eachCipheredFileName;
-				if (cipherDir.equals(plainDir)) {
-					eachPlainFileName = PLAIN_NAME_PREFIX + eachCipheredFileName;
-				}
-				File eachCipherFile = new File(cipherDir + File.separator + eachCipheredFileName);
-				File eachPlainFile = new File(plainDir + File.separator + eachPlainFileName);
 				if (!eachCipherFile.isDirectory() && eachCipherFile.canRead()) {
 					engine.doDecipherFile(eachCipherFile, eachPlainFile, password);
 				} else {
 					if (verboseMode) {
-						System.out.println("Skiping directory : " + eachCipheredFileName);
+						System.out.println("Skiping : " + eachCipheredFileName);
 					}
 				}
 			}
@@ -220,6 +254,9 @@ public class QNAPFileDecrypter {
 				.desc("Input ciphered file (or directory) to decipher").hasArg(true).required(true).build());
 		posixOptions.addOption(Option.builder(PLAIN_FILE_OPTION).desc("Output plain file (or directory)").hasArg(true)
 				.required(true).build());
+		posixOptions.addOption(
+				Option.builder(RECURSIVE_OPTION).desc("Enable recursive mode (WARNING : MAY TAKE A LONG TIME !)")
+						.hasArg(false).required(false).build());
 
 		return posixOptions;
 	}
@@ -247,11 +284,9 @@ public class QNAPFileDecrypter {
 	 */
 	private static void displayHelpAndExit(final String applicationName) {
 		System.out.println("-- HELP --");
-		printHelp(constructPosixOptions(), 80, "COMMAND HELP",
-				System.lineSeparator()
-						+ "Note : in directory mode, both input and output arguments must be directories. Decipher operation is not recursive."
-						+ System.lineSeparator() + "END OF HELP",
-				3, 5, true, System.out);
+		printHelp(constructPosixOptions(), 80, "COMMAND HELP", System.lineSeparator()
+				+ "Note : in directory mode, both input and output arguments must be directories. Decipher operation is not recursive."
+				+ System.lineSeparator() + "END OF HELP", 3, 5, true, System.out);
 
 		System.exit(1);
 	}
@@ -274,8 +309,7 @@ public class QNAPFileDecrypter {
 	 * Apply Apache Commons CLI PosixParser to command-line arguments.
 	 * 
 	 * @param commandLineArguments
-	 *            Command-line arguments to be processed with Posix-style
-	 *            parser.
+	 *            Command-line arguments to be processed with Posix-style parser.
 	 */
 	private static CommandLine usePosixParser(final String[] commandLineArguments) {
 		final CommandLineParser cmdLinePosixParser = new DefaultParser();
