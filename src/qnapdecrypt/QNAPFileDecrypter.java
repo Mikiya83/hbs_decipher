@@ -214,8 +214,8 @@ public class QNAPFileDecrypter {
 				if (verboseMode) {
 					System.out.println(System.lineSeparator() + "Enter in directory : " + eachCipheredFileName);
 				}
-				String newPlainDir = plainDir + File.separator + eachCipheredFileName;
-				String newCipherDir = cipherDir + File.separator + eachPlainFileName;
+				String newPlainDir = plainDir + File.separator + eachPlainFileName;
+				String newCipherDir = cipherDir + File.separator + eachCipheredFileName;
 				try {
 					if (!Files.isDirectory(Paths.get(newPlainDir))) {
 						Files.createDirectory(Paths.get(newPlainDir));
