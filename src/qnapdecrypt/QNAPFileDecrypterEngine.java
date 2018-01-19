@@ -129,6 +129,8 @@ public class QNAPFileDecrypterEngine {
 	private static final byte[] QNAP_FILE_PREFIX_V2_BYTES_NO_COMPRESS = new byte[] { 75, -54, -108, 114, 94, -125, 28,
 			49, 1, 0 };
 
+	private static final String TEMP_SUFFIX = ".temp";
+
 	private boolean dirMode = false;
 
 	private boolean verboseMode = false;
@@ -343,7 +345,7 @@ public class QNAPFileDecrypterEngine {
 			final FileInputStream inputStream = new FileInputStream(inputFile);
 			final FileOutputStream outputStream;
 			if (fileInfo.isCompressed()) {
-				outputStream = new FileOutputStream(outputFile.getAbsolutePath() + ".temp");
+				outputStream = new FileOutputStream(outputFile.getAbsolutePath() + TEMP_SUFFIX);
 			} else {
 				outputStream = new FileOutputStream(outputFile);
 			}
@@ -414,7 +416,7 @@ public class QNAPFileDecrypterEngine {
 					System.out.println("Deciphering ok, decompress file...");
 				}
 				try (InflaterInputStream in = new InflaterInputStream(
-						new FileInputStream(outputFile.getAbsolutePath() + ".temp"))) {
+						new FileInputStream(outputFile.getAbsolutePath() + TEMP_SUFFIX))) {
 					try (FileOutputStream out = new FileOutputStream(outputFile)) {
 						byte[] buffer = new byte[blockSize];
 						int len;
@@ -427,7 +429,7 @@ public class QNAPFileDecrypterEngine {
 		} catch (final GeneralSecurityException exc) {
 			throw exc;
 		} finally {
-			Files.deleteIfExists(Paths.get(outputFile.getAbsolutePath() + ".temp"));
+			Files.deleteIfExists(Paths.get(outputFile.getAbsolutePath() + TEMP_SUFFIX));
 		}
 	}
 

@@ -33,8 +33,6 @@ public class QNAPFileDecrypter {
 
 	private static boolean dirMode = false;
 
-	private static boolean recursiveMode = false;
-
 	private static final String JAVA_7_JCE = "http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html";
 
 	private static final String JAVA_7_VERSION = "1.7";
@@ -50,6 +48,10 @@ public class QNAPFileDecrypter {
 	private static final String PLAIN_NAME_PREFIX = "plain_";
 
 	private static final String RECURSIVE_OPTION = "r";
+
+	private static boolean recursiveMode = false;
+
+	private static final String TOOL_VERSION = "1.4";
 
 	private static final String VERBOSE_OPTION = "v";
 
@@ -194,6 +196,28 @@ public class QNAPFileDecrypter {
 		}
 	}
 
+	/**
+	 * Construct and provide Posix-compatible Options.
+	 * 
+	 * @return Options expected from command-line of Posix form.
+	 */
+	private static Options constructPosixOptions() {
+		final Options posixOptions = new Options();
+		posixOptions.addOption(
+				Option.builder(VERBOSE_OPTION).desc("Enable verbose mode").hasArg(false).required(false).build());
+		posixOptions.addOption(
+				Option.builder(PASSWORD_OPTION).desc("User defined password").hasArg(true).required(false).build());
+		posixOptions.addOption(Option.builder(CIPHERED_FILE_OPTION)
+				.desc("Input ciphered file (or directory) to decipher").hasArg(true).required(true).build());
+		posixOptions.addOption(Option.builder(PLAIN_FILE_OPTION).desc("Output plain file (or directory)").hasArg(true)
+				.required(true).build());
+		posixOptions.addOption(
+				Option.builder(RECURSIVE_OPTION).desc("Enable recursive mode (WARNING : MAY TAKE A LONG TIME !)")
+						.hasArg(false).required(false).build());
+
+		return posixOptions;
+	}
+
 	private static void decipherMultipleFiles(File cipherFile, File plainFile, String password,
 			QNAPFileDecrypterEngine engine) {
 		File cipherDir = cipherFile;
@@ -240,35 +264,13 @@ public class QNAPFileDecrypter {
 	}
 
 	/**
-	 * Construct and provide Posix-compatible Options.
-	 * 
-	 * @return Options expected from command-line of Posix form.
-	 */
-	private static Options constructPosixOptions() {
-		final Options posixOptions = new Options();
-		posixOptions.addOption(
-				Option.builder(VERBOSE_OPTION).desc("Enable verbose mode").hasArg(false).required(false).build());
-		posixOptions.addOption(
-				Option.builder(PASSWORD_OPTION).desc("User defined password").hasArg(true).required(false).build());
-		posixOptions.addOption(Option.builder(CIPHERED_FILE_OPTION)
-				.desc("Input ciphered file (or directory) to decipher").hasArg(true).required(true).build());
-		posixOptions.addOption(Option.builder(PLAIN_FILE_OPTION).desc("Output plain file (or directory)").hasArg(true)
-				.required(true).build());
-		posixOptions.addOption(
-				Option.builder(RECURSIVE_OPTION).desc("Enable recursive mode (WARNING : MAY TAKE A LONG TIME !)")
-						.hasArg(false).required(false).build());
-
-		return posixOptions;
-	}
-
-	/**
 	 * Display application header.
 	 * 
 	 * @out OutputStream to which header should be written.
 	 */
 	private static void displayHeader(final OutputStream out) {
 		System.out.print(System.lineSeparator());
-		final String header = "[NOT-OFFICIAL file decipher for QNAP Hybrid Backup Sync files]";
+		final String header = "[NOT-OFFICIAL file decipher for QNAP Hybrid Backup Sync files V" + TOOL_VERSION + "]";
 		try {
 			out.write(header.getBytes());
 		} catch (IOException ioEx) {
