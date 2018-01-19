@@ -20,6 +20,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.util.Arrays;
+import java.util.zip.InflaterInputStream;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -74,6 +75,32 @@ public class QNAPFileDecrypterEngine {
 		}
 	}
 
+	/**
+	 * Internal class for file type informations.
+	 * 
+	 */
+	private class FileType {
+		final private boolean compressed;
+		final private int encryptVersion;
+
+		public FileType(int encryptVersion) {
+			this(encryptVersion, false);
+		}
+
+		public FileType(int encryptVersion, boolean compressed) {
+			this.encryptVersion = encryptVersion;
+			this.compressed = compressed;
+		}
+
+		public int getEncryptVersion() {
+			return encryptVersion;
+		}
+
+		public boolean isCompressed() {
+			return compressed;
+		}
+	}
+
 	private static final int AES_KEY_STRENGTH = 256;
 
 	private static final String AES_MODE = "AES/CBC/PKCS5Padding";
@@ -90,11 +117,17 @@ public class QNAPFileDecrypterEngine {
 
 	private static final String HEADER_SPLIT_VALUE = ":";
 
+	private static final int HEADER_V2_LENGTH = 80;
+
 	private static final int PBKDF2_ITER_COUNT = 1000;
 
 	private static final byte[] QNAP_FILE_PREFIX_BYTES = new byte[] { 95, 95, 81, 67, 83, 95, 95 };
 
-	private static final byte[] QNAP_FILE_PREFIX_V2_BYTES = new byte[] { 75, -54, -108, 114, 94, -125, 28 };
+	private static final byte[] QNAP_FILE_PREFIX_V2_BYTES_COMPRESS = new byte[] { 75, -54, -108, 114, 94, -125, 28, 49,
+			1, 1 };
+
+	private static final byte[] QNAP_FILE_PREFIX_V2_BYTES_NO_COMPRESS = new byte[] { 75, -54, -108, 114, 94, -125, 28,
+			49, 1, 0 };
 
 	private boolean dirMode = false;
 
@@ -122,8 +155,8 @@ public class QNAPFileDecrypterEngine {
 				return false;
 			}
 
-			int softVersion = checkCipheredFile(cipherFile);
-			if (softVersion < 0) {
+			FileType fileInfos = checkCipheredFile(cipherFile);
+			if (fileInfos.getEncryptVersion() < 0) {
 				if (dirMode) {
 					if (verboseMode) {
 						// In dir mode, do not warn about all files not
@@ -140,7 +173,7 @@ public class QNAPFileDecrypterEngine {
 			if (verboseMode) {
 				System.out.println("Reading header values...");
 			}
-			if (softVersion == 1) {
+			if (fileInfos.getEncryptVersion() == 1) {
 				if (verboseMode) {
 					System.out.println("Read file version 1 !");
 				}
@@ -156,13 +189,12 @@ public class QNAPFileDecrypterEngine {
 				byte[] key = decipherText(Base64.decodeBase64(keyCiphered), uniqueKey);
 				// TODO : SecretKeySpec throw a DestroyFailedException as
 				// implementation of destroy, use it when a real implementation
-				// is
-				// done
+				// is done
 				uniqueKey = null;
 				if (verboseMode) {
 					System.out.println("Decipher file...");
 				}
-				decipherFile(key, new byte[] {}, cipherFile, plainFile, softVersion);
+				decipherFile(key, new byte[] {}, cipherFile, plainFile, fileInfos);
 				Arrays.fill(key, Byte.MAX_VALUE);
 				if (verboseMode) {
 					System.out.println("Checking checksums from origin and output files...");
@@ -173,7 +205,7 @@ public class QNAPFileDecrypterEngine {
 				} else if (verboseMode) {
 					System.out.println("Checksums ok, decipher " + cipherFile.getName() + " successfull !");
 				}
-			} else if (softVersion == 2) {
+			} else if (fileInfos.getEncryptVersion() == 2) {
 				if (verboseMode) {
 					System.out.println("Read file version 2 !");
 				}
@@ -182,7 +214,7 @@ public class QNAPFileDecrypterEngine {
 				if (verboseMode) {
 					System.out.println("Decipher file...");
 				}
-				decipherFile(eHeader.getCkey(), eHeader.getSalt(), cipherFile, plainFile, softVersion);
+				decipherFile(eHeader.getCkey(), eHeader.getSalt(), cipherFile, plainFile, fileInfos);
 				eHeader.setCkey(null);
 
 				boolean decipherSuccess = (plainFile.length() == eHeader.getSize());
@@ -211,17 +243,20 @@ public class QNAPFileDecrypterEngine {
 	 * 
 	 * @param file
 	 */
-	private int checkCipheredFile(File cipherFile) {
+	private FileType checkCipheredFile(File cipherFile) {
 		try (final FileInputStream inputStream = new FileInputStream(cipherFile)) {
 
 			// affect read buffer and check size
-			byte[] readBytes = new byte[Math.max(QNAP_FILE_PREFIX_BYTES.length, QNAP_FILE_PREFIX_V2_BYTES.length)];
+			byte[] readBytes = new byte[Math.max(
+					Math.max(QNAP_FILE_PREFIX_BYTES.length, QNAP_FILE_PREFIX_V2_BYTES_NO_COMPRESS.length),
+					QNAP_FILE_PREFIX_V2_BYTES_COMPRESS.length)];
 			if (cipherFile.length() < readBytes.length) {
-				return -1;
+				return new FileType(-1);
 			}
 
 			// Read in bytes to avoid encoding errors
 			inputStream.read(readBytes);
+			boolean compressEnable = false;
 
 			// Compare with known headers
 			int version = -1;
@@ -234,20 +269,30 @@ public class QNAPFileDecrypterEngine {
 					}
 				}
 			}
-			if (version < 0 && readBytes.length >= QNAP_FILE_PREFIX_V2_BYTES.length) {
+			if (version < 0 && readBytes.length >= QNAP_FILE_PREFIX_V2_BYTES_NO_COMPRESS.length) {
 				for (int index = 0; index < readBytes.length; index++) {
-					if (QNAP_FILE_PREFIX_V2_BYTES[index] != readBytes[index]) {
+					if (QNAP_FILE_PREFIX_V2_BYTES_NO_COMPRESS[index] != readBytes[index]) {
 						break;
-					} else if (index == QNAP_FILE_PREFIX_V2_BYTES.length - 1) {
+					} else if (index == QNAP_FILE_PREFIX_V2_BYTES_NO_COMPRESS.length - 1) {
 						version = 2;
 					}
 				}
 			}
-			return version;
+			if (version < 0 && readBytes.length >= QNAP_FILE_PREFIX_V2_BYTES_COMPRESS.length) {
+				for (int index = 0; index < readBytes.length; index++) {
+					if (QNAP_FILE_PREFIX_V2_BYTES_COMPRESS[index] != readBytes[index]) {
+						break;
+					} else if (index == QNAP_FILE_PREFIX_V2_BYTES_COMPRESS.length - 1) {
+						version = 2;
+						compressEnable = true;
+					}
+				}
+			}
+			return new FileType(version, compressEnable);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return -1;
+		return new FileType(-1);
 	}
 
 	/**
@@ -290,27 +335,32 @@ public class QNAPFileDecrypterEngine {
 	 * @throws GeneralSecurityException
 	 * @throws IOException
 	 */
-	private void decipherFile(byte[] keyArray, byte[] iv, final File inputFile, final File outputFile, int version)
-			throws GeneralSecurityException, IOException {
+	private void decipherFile(byte[] keyArray, byte[] iv, final File inputFile, final File outputFile,
+			FileType fileInfo) throws GeneralSecurityException, IOException {
 
 		try {
 			// Create files streams
 			final FileInputStream inputStream = new FileInputStream(inputFile);
-			final FileOutputStream outputStream = new FileOutputStream(outputFile);
+			final FileOutputStream outputStream;
+			if (fileInfo.isCompressed()) {
+				outputStream = new FileOutputStream(outputFile.getAbsolutePath() + ".temp");
+			} else {
+				outputStream = new FileOutputStream(outputFile);
+			}
 
-			if (version == 1) {
+			if (fileInfo.getEncryptVersion() == 1) {
 				// Skip file header
 				int lengthToSkip = searchDataIndexInFile(inputFile);
 				inputStream.skip(lengthToSkip);
-			} else if (version == 2) {
+			} else if (fileInfo.getEncryptVersion() == 2) {
 				// Skip file header
-				inputStream.skip(80);
+				inputStream.skip(HEADER_V2_LENGTH);
 			}
 			// Create key
 			Cipher dcipher = Cipher.getInstance(AES_MODE);
 
 			// Read random initialization vector.
-			if (version == 1) {
+			if (fileInfo.getEncryptVersion() == 1) {
 				iv = new byte[BLOCK_SIZE];
 				inputStream.read(iv);
 			}
@@ -329,6 +379,7 @@ public class QNAPFileDecrypterEngine {
 
 			int inLength = 0;
 			boolean done = false;
+
 			while (!done) {
 				inLength = inputStream.read(inBytes);
 				if (inLength == blockSize) {
@@ -358,8 +409,25 @@ public class QNAPFileDecrypterEngine {
 			outputStream.flush();
 			outputStream.close();
 
+			if (fileInfo.isCompressed()) {
+				if (verboseMode) {
+					System.out.println("Deciphering ok, decompress file...");
+				}
+				try (InflaterInputStream in = new InflaterInputStream(
+						new FileInputStream(outputFile.getAbsolutePath() + ".temp"))) {
+					try (FileOutputStream out = new FileOutputStream(outputFile)) {
+						byte[] buffer = new byte[blockSize];
+						int len;
+						while ((len = in.read(buffer)) != -1) {
+							out.write(buffer, 0, len);
+						}
+					}
+				}
+			}
 		} catch (final GeneralSecurityException exc) {
 			throw exc;
+		} finally {
+			Files.deleteIfExists(Paths.get(outputFile.getAbsolutePath() + ".temp"));
 		}
 	}
 
