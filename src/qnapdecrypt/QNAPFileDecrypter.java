@@ -51,7 +51,7 @@ public class QNAPFileDecrypter {
 
 	private static boolean recursiveMode = false;
 
-	private static final String TOOL_VERSION = "1.4";
+	private static final String TOOL_VERSION = "1.4.1";
 
 	private static final String VERBOSE_OPTION = "v";
 

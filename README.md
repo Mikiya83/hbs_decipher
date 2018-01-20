@@ -24,25 +24,23 @@ As a JAVA tool, this tool should be compatible with a large variety of OS, as lo
 Requirements:
 - At least 512 MB of system memory. Recommended minimum is 1 GB.
 - A modern operating system. Both x86 and x64 are supported.
-- Oracle JAVA JRE 7+, can be found here:
-http://www.oracle.com/technetwork/java/index.html
-or OpenJDK 7+, can be found here:
+- Oracle JAVA JRE 7+, can be found here:<br />
+http://www.oracle.com/technetwork/java/index.html<br />
+or OpenJDK 7+, can be found here:<br />
 http://openjdk.java.net/	
+- Tested on Windows 10 64bits, CentOS 6 32 bits, Oracle JRE 7 and Oracle JRE 8 and JRE 9.
 
----- Deprecated if you are using JAVA after update 151 ----
-- Unlimited JCE policy for your JAVA version, can be found here:
-JAVA 7 : http://www.oracle.com/technetwork/java/ ... 32124.html
-JAVA 8 : http://www.oracle.com/technetwork/java/ ... 33166.html
-WARNING: without it JAVA cannot use AES 256 (used by Hybrid Backup Sync) so this tool cannot work. After each JAVA update, JCE policy must be re-applied.
-----------------------
-
-- Tested on Windows 10 64bits, CentOS 6 32 bits, Oracle JRE 7 and Oracle JRE 8
-
-** IMPORTANT : notes for MAC users BEFORE UPDATE 151 : **
+** IMPORTANT : notes for MAC users **
 - for password field, use Ctrl+C / Ctrl+V to copy and past.
-- for JCE, change in 2 locations :
-JRE: /Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/jre/lib/security
-JDK: /Library/Java/JavaVirtualMachines/jdk1.x.x_xxx.jdk/Contents/Home/jre/lib/security
+
+---
+**Deprecated if you are using JAVA after update 151 **<br />
+-Unlimited JCE policy for your JAVA version, can be found on Oracle website.<br />
+WARNING: without it JAVA cannot use AES 256 (used by Hybrid Backup Sync) so this tool cannot work. After each JAVA update, JCE policy must be re-applied.<br />
+-For JCE on MAC, change in 2 locations :<br />
+JRE: /Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/jre/lib/security<br />
+JDK: /Library/Java/JavaVirtualMachines/jdk1.x.x_xxx.jdk/Contents/Home/jre/lib/security<br />
+---
 
 # How to decipher a file (summarized):
 
@@ -62,7 +60,10 @@ java -jar hybrid_backup_sync_decipher_XXX_gui.jar (or start it from your file ex
 4. Start deciphering.
 5. A dialog show you the result and more informations are available in HBSUtility_report.txt in destination folder.
 
-Note : you can choose a folder as source or destination.
-If a folder is chosen as source, the destination MUST be a folder too.
-If a folder is chosen as destination but the source is a file, a file with the same name will be created in destination folder.
+*Note If you have visual problem :*<br />
+*You can start the GUI as a resizable window, with "r" command-line argument, or simply create a file "resizeEnable" in the same directory as hybrid_backup_sync_decipher_XXX_gui.jar.*
+
+Note on files choices: you can choose a folder as source or destination.<br />
+If a folder is chosen as source, the destination MUST be a folder too.<br />
+If a folder is chosen as destination but the source is a file, a file with the same name will be created in destination folder.<br />
 If the source and the destination are the same file or folder, a new file will be created, with same name prefixed by "plain_".
