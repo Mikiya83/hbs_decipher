@@ -35,7 +35,7 @@ http://openjdk.java.net/
 
 ---
 
-* Deprecated if you are using JAVA after update 151 *<br />
+*Deprecated if you are using JAVA after update 151*<br />
 
 -Unlimited JCE policy for your JAVA version, can be found on Oracle website.<br />
 WARNING: without it JAVA cannot use AES 256 (used by Hybrid Backup Sync) so this tool cannot work. After each JAVA update, JCE policy must be re-applied.<br />
