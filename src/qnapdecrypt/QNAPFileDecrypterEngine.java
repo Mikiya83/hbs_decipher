@@ -493,7 +493,8 @@ public class QNAPFileDecrypterEngine {
 			eHeader.setSalt(salt);
 
 			packed.read(size, 0, 8);
-			ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+			//ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+			ByteBuffer buffer = ByteBuffer.allocate(Long.SIZE/Byte.SIZE);
 			buffer.put(size);
 			buffer.flip();// need flip
 			eHeader.setSize(buffer.getLong());
