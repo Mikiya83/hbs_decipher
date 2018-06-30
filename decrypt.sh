@@ -2,7 +2,7 @@
 
 set -e
 
-FULLPATH=$(readlink -f $0)
+FULLPATH=$( cd $(dirname $0); pwd)/$(basename $0)
 CMD=$(basename $FULLPATH)
 DIR=$(dirname $FULLPATH)
 
@@ -12,5 +12,5 @@ case $# in
 	   exit 0;;
 esac
 
-java -cp "$DIR/bin/hbs.jar:$DIR/lib/*" qnapdecrypt/QNAPFileDecrypter -i $IN  -o $OUT -v
+java -jar $DIR/hbs_decipher.jar -i $IN  -o $OUT -v
 
