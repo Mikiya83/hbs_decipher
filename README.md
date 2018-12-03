@@ -1,4 +1,7 @@
 # Hybrid Backup Sync Decipher
+
+[![GuardRails badge](https://badges.production.guardrails.io/Mikiya83/hbs_decipher.svg)](https://www.guardrails.io)
+
 Currently there is no official tool to decipher files from Hybrid Backup Sync (on QNAP devices) on all plateform.
 I've made this tool with some ideas : light (<1MB), fast (<3s for 300MB on my computer), universal, open source, with as less as possible dependencies.
 
