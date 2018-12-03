@@ -51,7 +51,7 @@ public class QNAPFileDecrypter {
 
 	private static boolean recursiveMode = false;
 
-	private static final String TOOL_VERSION = "1.4.1";
+	private static final String TOOL_VERSION = "1.4.3";
 
 	private static final String VERBOSE_OPTION = "v";
 
@@ -181,7 +181,7 @@ public class QNAPFileDecrypter {
 			// Single file mode
 			File outputFile = plainFile;
 			if (plainFile.isDirectory()) {
-				if (cipherFile.getParentFile().equals(plainFile)) {
+				if (plainFile.equals(cipherFile.getParentFile())) {
 					outputFile = new File(plainFile + File.separator + PLAIN_NAME_PREFIX + cipherFile.getName());
 				} else {
 					outputFile = new File(plainFile + File.separator + cipherFile.getName());
