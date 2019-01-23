@@ -152,8 +152,9 @@ public class QNAPFileDecrypterEngine {
 	 */
 	public boolean doDecipherFile(File cipherFile, File plainFile, String password) {
 		try {
-			if (!cipherFile.exists()) {
-				System.err.println("The file " + cipherFile.getName() + " does not exist.");
+			cipherFile = cipherFile.getAbsoluteFile();
+			if (!cipherFile.canRead()) {
+				System.err.println("The file " + cipherFile.getAbsolutePath() + " does not exist or is not readable.");
 				return false;
 			}
 
@@ -493,8 +494,8 @@ public class QNAPFileDecrypterEngine {
 			eHeader.setSalt(salt);
 
 			packed.read(size, 0, 8);
-			//ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-			ByteBuffer buffer = ByteBuffer.allocate(Long.SIZE/Byte.SIZE);
+			// ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+			ByteBuffer buffer = ByteBuffer.allocate(Long.SIZE / Byte.SIZE);
 			buffer.put(size);
 			buffer.flip();// need flip
 			eHeader.setSize(buffer.getLong());
