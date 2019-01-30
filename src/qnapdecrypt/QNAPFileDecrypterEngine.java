@@ -11,8 +11,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.DigestInputStream;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
@@ -444,7 +442,10 @@ public class QNAPFileDecrypterEngine {
 		} catch (final GeneralSecurityException exc) {
 			throw exc;
 		} finally {
-			Files.deleteIfExists(Paths.get(outputFile.getAbsolutePath() + TEMP_SUFFIX));
+			File outputEndFile = new File(outputFile.getAbsolutePath() + TEMP_SUFFIX);
+			if (outputEndFile.exists()) {
+				outputEndFile.delete();
+			}
 		}
 	}
 
@@ -565,8 +566,7 @@ public class QNAPFileDecrypterEngine {
 	 */
 	private byte[] getChecksum(File file) throws NoSuchAlgorithmException {
 		MessageDigest md = MessageDigest.getInstance(DIGEST_ALGO);
-		try (InputStream is = Files.newInputStream(Paths.get(file.getAbsolutePath()));
-				DigestInputStream dis = new DigestInputStream(is, md)) {
+		try (InputStream is = new FileInputStream(file); DigestInputStream dis = new DigestInputStream(is, md)) {
 			/* Read decorated stream (dis) to EOF as normal... */
 		} catch (IOException e) {
 			e.printStackTrace();
