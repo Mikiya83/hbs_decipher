@@ -7,6 +7,8 @@ I've made this tool with some ideas : light (<1MB), fast (<3s for 300MB on my co
 
 This software is provided without any warranties, use it at your own risk.
 
+![Cat](../assets/hbs_gui.JPG)
+![Cat](../assets/hbs_cli.JPG)
 
 # License:
 
