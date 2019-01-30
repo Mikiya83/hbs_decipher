@@ -377,8 +377,22 @@ public class QNAPFileDecrypterEngine {
 			// Read data
 			int blockSize = dcipher.getBlockSize() * dcipher.getBlockSize();
 			int outputSize = dcipher.getOutputSize(blockSize);
+
+			// Fix ShortBufferException problem on Android with OpenSSL Provider like
+			// described here :
+			// https://blog.osom.info/2014/07/symmetric-encryption-issue-in-android-43.html
+			if (dcipher.getProvider().getName().contains("AndroidOpenSSL")) {
+				outputSize += dcipher.getBlockSize();
+			}
+
 			byte[] inBytes = new byte[blockSize];
 			byte[] outBytes = new byte[outputSize];
+
+			if (verboseMode) {
+				System.err.println("Use provider : " + dcipher.getProvider().getName() + " - Use block cipher size : "
+						+ dcipher.getBlockSize() + " - Use Inputt buffer block size : " + blockSize
+						+ " - Use Output buffer size : " + outputSize);
+			}
 
 			int inLength = 0;
 			boolean done = false;
