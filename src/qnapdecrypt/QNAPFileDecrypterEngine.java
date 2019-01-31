@@ -149,6 +149,8 @@ public class QNAPFileDecrypterEngine {
 	 *            User defined password.
 	 */
 	public boolean doDecipherFile(File cipherFile, File plainFile, String password) {
+		boolean decipherSuccess = false;
+
 		try {
 			cipherFile = cipherFile.getAbsoluteFile();
 			if (!cipherFile.canRead()) {
@@ -200,7 +202,7 @@ public class QNAPFileDecrypterEngine {
 				if (verboseMode) {
 					System.out.println("Checking checksums from origin and output files...");
 				}
-				boolean decipherSuccess = compareChecksums(cipherFile, salt, plainFile);
+				decipherSuccess = compareChecksums(cipherFile, salt, plainFile);
 				if (!decipherSuccess) {
 					System.err.println("Wrong md5 checksum after decipher !");
 				} else if (verboseMode) {
@@ -218,7 +220,7 @@ public class QNAPFileDecrypterEngine {
 				decipherFile(eHeader.getCkey(), eHeader.getSalt(), cipherFile, plainFile, fileInfos);
 				eHeader.setCkey(null);
 
-				boolean decipherSuccess = (plainFile.length() == eHeader.getSize());
+				decipherSuccess = (plainFile.length() == eHeader.getSize());
 				if (!decipherSuccess) {
 					System.err.println("Wrong size after decipher !");
 				} else if (verboseMode) {
@@ -232,7 +234,7 @@ public class QNAPFileDecrypterEngine {
 			}
 			return false;
 		}
-		return true;
+		return decipherSuccess;
 	}
 
 	public void setDirMode(boolean dirMode) {
