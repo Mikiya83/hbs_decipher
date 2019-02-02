@@ -29,11 +29,9 @@ As a JAVA tool, this tool should be compatible with a large variety of OS, as lo
 Requirements:
 - At least 512 MB of system memory. Recommended minimum is 1 GB.
 - A modern operating system. Both x86 and x64 are supported.
-- Oracle JAVA JRE 7+, can be found here:<br />
+- Oracle JAVA JRE 8+, can be found here:<br />
 http://www.oracle.com/technetwork/java/index.html<br />
-or OpenJDK 7+, can be found here:<br />
-http://openjdk.java.net/	
-- Tested on Windows 10 64bits, CentOS 6 32 bits, Oracle JRE 7 and Oracle JRE 8 and JRE 9.
+- Tested on Windows 10 64bits, CentOS 6 32 bits, Oracle JRE 8 and JRE 9.
 
 ** IMPORTANT : notes for MAC users **
 - for password field, use Ctrl+C / Ctrl+V to copy and past.
