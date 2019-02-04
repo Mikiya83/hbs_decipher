@@ -10,10 +10,29 @@
 	<version>1.5.1</version>
 	<packaging>jar</packaging>
 	
+	<name>HBS Decipher tool</name>
+	<description>It is a tool to decipher files ciphered with Hybrid Backup Sync with cloud providers.</description>
+	<url>https://github.com/Mikiya83/hbs_decipher</url>
+	
+	<developers>
+	    <developer>
+	      <name>TRITZ Yoann</name>
+	      <url>https://keybase.io/yoannttz</url>
+	    </developer>
+	</developers>
+	
 	<properties>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
 	</properties>
+
+	  <licenses>
+	    <license>
+	      <name>GNU General Public License v3.0</name>
+	      <url>https://github.com/Mikiya83/hbs_decipher/blob/master/LICENSE</url>
+	      <distribution>repo</distribution>
+	    </license>
+	  </licenses>
 
 	<dependencies>
 		<dependency>
@@ -32,6 +51,7 @@
 		<sourceDirectory>src</sourceDirectory>
 	
 		<plugins>
+			<!-- Project assembly -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
@@ -58,6 +78,24 @@
 					</execution>
 				</executions>
 			</plugin>
+			
+			<!-- Sign generation -->
+			<plugin>
+	        <groupId>org.apache.maven.plugins</groupId>
+	        <artifactId>maven-gpg-plugin</artifactId>
+	        <executions>
+	          <execution>
+	            <id>sign-artifacts</id>
+	            <phase>verify</phase>
+	            <goals>
+	              <goal>sign</goal>
+	            </goals>
+	            <configuration>
+	              <keyname>F4226E086A43130F1F4E48267FD4DFE98012D5CF</keyname>
+	            </configuration>
+	          </execution>
+	        </executions>
+	      </plugin>
 		</plugins>
 	</build>
 </project>
