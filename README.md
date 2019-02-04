@@ -14,6 +14,10 @@ This software is provided without any warranties, use it at your own risk.
 
 Tool under GNU version 3 license.
 
+# Signing:
+
+All files in my releases are signed with public key : https://keybase.io/yoannttz/pgp_keys.asc
+
 # Description:
 
 First of all, this program is not supported or affiliated with QNAP Systems Inc.
