@@ -7,7 +7,7 @@
 	
 	<groupId>io.github.mikiya83</groupId>
 	<artifactId>hbs_decipher</artifactId>
-	<version>1.5.1</version>
+	<version>1.6</version>
 	<packaging>jar</packaging>
 	
 	<name>HBS Decipher tool</name>
@@ -45,6 +45,11 @@
 			<artifactId>commons-codec</artifactId>
 			<version>1.11</version>
 		</dependency>
+		<dependency>
+	        <groupId>org.bouncycastle</groupId>
+	        <artifactId>bcprov-jdk16</artifactId>
+	        <version>1.46</version>
+	    </dependency>
 	</dependencies>
 
 	<build>

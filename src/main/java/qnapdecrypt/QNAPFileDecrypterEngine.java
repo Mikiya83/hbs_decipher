@@ -11,6 +11,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.security.DigestInputStream;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
@@ -107,6 +108,8 @@ public class QNAPFileDecrypterEngine {
 
 	private static final int BLOCK_SIZE = 16;
 
+	private static final Charset CHARSET = Charset.forName("UTF-8");
+
 	private static final String DIGEST_ALGO = "MD5";
 
 	private static final String HEADER_EMPTY_VALUE = "\\x00";
@@ -116,6 +119,14 @@ public class QNAPFileDecrypterEngine {
 	private static final String HEADER_SPLIT_VALUE = ":";
 
 	private static final int HEADER_V2_LENGTH = 80;
+
+	private static final int INDEX_IV = 1;
+
+	private static final int INDEX_KEY = 0;
+
+	private static final int ITERATIONS = 1;
+
+	private static final String OPENSSL_DIGEST_ALGO = "MD5";
 
 	private static final int PBKDF2_ITER_COUNT = 1000;
 
@@ -127,12 +138,10 @@ public class QNAPFileDecrypterEngine {
 	private static final byte[] QNAP_FILE_PREFIX_V2_BYTES_NO_COMPRESS = new byte[] { 75, -54, -108, 114, 94, -125, 28,
 			49, 1, 0 };
 
+	private static final int SALT_SIZE = 8;
 	private static final String TEMP_SUFFIX = ".temp";
-
 	private boolean dirMode = false;
-
 	private boolean verboseMode = false;
-
 	public QNAPFileDecrypterEngine(boolean verbose, boolean dirMode) {
 		this.dirMode = dirMode;
 		this.verboseMode = verbose;
@@ -160,17 +169,33 @@ public class QNAPFileDecrypterEngine {
 
 			FileType fileInfos = checkCipheredFile(cipherFile);
 			if (fileInfos.getEncryptVersion() < 0) {
-				if (dirMode) {
+
+				// Check OpenSSL file
+
+				if (checkOpenSslFile(cipherFile)) {
 					if (verboseMode) {
-						// In dir mode, do not warn about all files not
-						// "QNAP-files" if not verbose
-						System.out.println("The file " + cipherFile.getName() + " is not a QNAP-ciphered file.");
+						System.out.println("Decipher OpenSSL file...");
 					}
+					decipherSuccess = decipherOpenSslFile(cipherFile, plainFile, password);
+					if (!decipherSuccess) {
+						System.err.println("OpenSSL deciphered failed, check your password !");
+					} else if (verboseMode) {
+						System.out.println("OpenSSL decipher for " + cipherFile.getName() + " successfull !");
+					}
+					return decipherSuccess;
 				} else {
-					// In single mode, file must be "QNAP-file"
-					System.err.println("The file " + cipherFile.getName() + " is not a QNAP-ciphered file.");
+					if (dirMode) {
+						if (verboseMode) {
+							// In dir mode, do not warn about all files not
+							// "QNAP-files" if not verbose
+							System.out.println("The file " + cipherFile.getName() + " is not a QNAP-ciphered file.");
+						}
+					} else {
+						// In single mode, file must be "QNAP-file"
+						System.err.println("The file " + cipherFile.getName() + " is not a QNAP-ciphered file.");
+					}
+					return false;
 				}
-				return false;
 			}
 
 			if (verboseMode) {
@@ -296,6 +321,22 @@ public class QNAPFileDecrypterEngine {
 			e.printStackTrace();
 		}
 		return new FileType(-1);
+	}
+
+	/**
+	 * Check if the ciphered file is a OpenSSL-ciphered file.
+	 * 
+	 * @param file
+	 */
+	private boolean checkOpenSslFile(File cipherFile) {
+		try (final FileInputStream inputStream = new FileInputStream(cipherFile)) {
+			byte[] salt = new byte[SALT_SIZE];
+			inputStream.read(salt);
+			return new String(salt).equals("Salted__");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return false;
 	}
 
 	/**
@@ -530,6 +571,110 @@ public class QNAPFileDecrypterEngine {
 	}
 
 	/**
+	 * Decipher an OpenSSL encrypted file.
+	 * 
+	 * @param cipherFile
+	 * @param plainFile
+	 * @param password
+	 * 
+	 * @return Success flag
+	 */
+	private boolean decipherOpenSslFile(File cipherFile, File plainFile, String password) {
+		boolean decipherSuccess = false;
+		try {
+			// Create files streams
+			final FileOutputStream outputStream = new FileOutputStream(plainFile);
+			final FileInputStream inputStream = new FileInputStream(cipherFile);
+
+			// --- read base 64 encoded file ---
+			byte[] salt = new byte[SALT_SIZE];
+
+			inputStream.skip(SALT_SIZE);
+			inputStream.read(salt);
+
+			// --- specify cipher and digest for EVP_BytesToKey method ---
+			Cipher cipher = Cipher.getInstance(AES_MODE);
+			MessageDigest digest = MessageDigest.getInstance(OPENSSL_DIGEST_ALGO);
+
+			// --- create key and IV ---
+
+			// the IV is useless, OpenSSL might as well have use zero's
+			final byte[][] keyAndIV = EVP_BytesToKey(AES_KEY_STRENGTH / Byte.SIZE, cipher.getBlockSize(), digest, salt,
+					password.getBytes(CHARSET), ITERATIONS);
+			SecretKeySpec key = new SecretKeySpec(keyAndIV[INDEX_KEY], "AES");
+			IvParameterSpec iv = new IvParameterSpec(keyAndIV[INDEX_IV]);
+
+			// --- initialize cipher instance and decrypt ---
+
+			cipher.init(Cipher.DECRYPT_MODE, key, iv);
+
+			// Read data
+			int blockSize = cipher.getBlockSize() * cipher.getBlockSize();
+			int outputSize = cipher.getOutputSize(blockSize);
+
+			// Fix ShortBufferException problem on Android with OpenSSL Provider like
+			// described here :
+			// https: //
+			// blog.osom.info/2014/07/symmetric-encryption-issue-in-android-43.html
+			if (cipher.getProvider().getName().contains("AndroidOpenSSL")) {
+				outputSize += cipher.getBlockSize();
+			}
+
+			byte[] inBytes = new byte[blockSize];
+			byte[] outBytes = new byte[outputSize];
+
+			if (verboseMode) {
+				System.err.println("Use provider : " + cipher.getProvider().getName() + " - Use block cipher size : "
+						+ cipher.getBlockSize() + " - Use Inputt buffer block size : " + blockSize
+						+ " - Use Output buffer size : " + outputSize);
+			}
+
+			int inLength = 0;
+			boolean done = false;
+
+			while (!done) {
+				inLength = inputStream.read(inBytes);
+				if (inLength == blockSize) {
+					try {
+						int outLength = cipher.update(inBytes, 0, blockSize, outBytes);
+						outputStream.write(outBytes, 0, outLength);
+					} catch (ShortBufferException e) {
+						e.printStackTrace();
+					}
+				} else
+					done = true;
+			}
+
+			try {
+				if (inLength > 0)
+					outBytes = cipher.doFinal(inBytes, 0, inLength);
+				else
+					outBytes = cipher.doFinal();
+				outputStream.write(outBytes);
+			} catch (IllegalBlockSizeException e) {
+				e.printStackTrace();
+			} catch (BadPaddingException e) {
+				e.printStackTrace();
+			}
+
+			inputStream.close();
+			outputStream.flush();
+			outputStream.close();
+
+			decipherSuccess = true;
+		} catch (GeneralSecurityException | IOException e) {
+			System.err.println("Error occured for file " + cipherFile.getName() + ", check your password.");
+			if (verboseMode) {
+				e.printStackTrace();
+			}
+			return false;
+		}
+
+		return decipherSuccess;
+
+	}
+
+	/**
 	 * Decipher a text.
 	 * 
 	 * @param textToDecipher
@@ -557,6 +702,77 @@ public class QNAPFileDecrypterEngine {
 		} catch (final GeneralSecurityException exc) {
 			throw exc;
 		}
+	}
+
+	/**
+	 * Convert info to EVP BytesToKey format used by OpenSSL.
+	 * 
+	 * Thanks go to Ola Bini for releasing this source on his blog. The source was
+	 * obtained from <a href="http://olabini.com/blog/tag/evp_bytestokey/">here</a>
+	 * .
+	 */
+	private byte[][] EVP_BytesToKey(int key_len, int iv_len, MessageDigest md, byte[] salt, byte[] data, int count) {
+		byte[][] both = new byte[2][];
+		byte[] key = new byte[key_len];
+		int key_ix = 0;
+		byte[] iv = new byte[iv_len];
+		int iv_ix = 0;
+		both[0] = key;
+		both[1] = iv;
+		byte[] md_buf = null;
+		int nkey = key_len;
+		int niv = iv_len;
+		int i = 0;
+		if (data == null) {
+			return both;
+		}
+		int addmd = 0;
+		for (;;) {
+			md.reset();
+			if (addmd++ > 0) {
+				md.update(md_buf);
+			}
+			md.update(data);
+			if (null != salt) {
+				md.update(salt, 0, 8);
+			}
+			md_buf = md.digest();
+			for (i = 1; i < count; i++) {
+				md.reset();
+				md.update(md_buf);
+				md_buf = md.digest();
+			}
+			i = 0;
+			if (nkey > 0) {
+				for (;;) {
+					if (nkey == 0)
+						break;
+					if (i == md_buf.length)
+						break;
+					key[key_ix++] = md_buf[i];
+					nkey--;
+					i++;
+				}
+			}
+			if (niv > 0 && i != md_buf.length) {
+				for (;;) {
+					if (niv == 0)
+						break;
+					if (i == md_buf.length)
+						break;
+					iv[iv_ix++] = md_buf[i];
+					niv--;
+					i++;
+				}
+			}
+			if (nkey == 0 && niv == 0) {
+				break;
+			}
+		}
+		for (i = 0; i < md_buf.length; i++) {
+			md_buf[i] = 0;
+		}
+		return both;
 	}
 
 	/**
