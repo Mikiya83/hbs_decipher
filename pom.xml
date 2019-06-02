@@ -46,10 +46,10 @@
 			<version>1.11</version>
 		</dependency>
 		<dependency>
-	        <groupId>org.bouncycastle</groupId>
-	        <artifactId>bcprov-jdk16</artifactId>
-	        <version>1.46</version>
-	    </dependency>
+		    <groupId>org.itadaki</groupId>
+		    <artifactId>bzip2</artifactId>
+		    <version>0.9.1</version>
+		</dependency>
 	</dependencies>
 
 	<build>

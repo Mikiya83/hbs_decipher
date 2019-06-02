@@ -10,6 +10,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.DigestInputStream;
@@ -34,6 +35,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
+import org.itadaki.bzip2.BZip2InputStream;
 
 /**
  * Engine to decipher operations on QNAP-ciphered files.
@@ -100,6 +102,8 @@ public class QNAPFileDecrypterEngine {
 		}
 	}
 
+	public static final String QNAP_BZ2_EXTENSION = ".qnap.bz2";
+
 	private static final int AES_KEY_STRENGTH = 256;
 
 	private static final String AES_MODE = "AES/CBC/PKCS5Padding";
@@ -142,6 +146,7 @@ public class QNAPFileDecrypterEngine {
 	private static final String TEMP_SUFFIX = ".temp";
 	private boolean dirMode = false;
 	private boolean verboseMode = false;
+
 	public QNAPFileDecrypterEngine(boolean verbose, boolean dirMode) {
 		this.dirMode = dirMode;
 		this.verboseMode = verbose;
@@ -329,7 +334,7 @@ public class QNAPFileDecrypterEngine {
 	 * @param file
 	 */
 	private boolean checkOpenSslFile(File cipherFile) {
-		try (final FileInputStream inputStream = new FileInputStream(cipherFile)) {
+		try (final InputStream inputStream = new FileInputStream(cipherFile)) {
 			byte[] salt = new byte[SALT_SIZE];
 			inputStream.read(salt);
 			return new String(salt).equals("Salted__");
@@ -415,53 +420,8 @@ public class QNAPFileDecrypterEngine {
 			// Configure the cipher with the key and the iv.
 			dcipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
 
-			// Read data
 			int blockSize = dcipher.getBlockSize() * dcipher.getBlockSize();
-			int outputSize = dcipher.getOutputSize(blockSize);
-
-			// Fix ShortBufferException problem on Android with OpenSSL Provider like
-			// described here :
-			// https://blog.osom.info/2014/07/symmetric-encryption-issue-in-android-43.html
-			if (dcipher.getProvider().getName().contains("AndroidOpenSSL")) {
-				outputSize += dcipher.getBlockSize();
-			}
-
-			byte[] inBytes = new byte[blockSize];
-			byte[] outBytes = new byte[outputSize];
-
-			if (verboseMode) {
-				System.err.println("Use provider : " + dcipher.getProvider().getName() + " - Use block cipher size : "
-						+ dcipher.getBlockSize() + " - Use Inputt buffer block size : " + blockSize
-						+ " - Use Output buffer size : " + outputSize);
-			}
-
-			int inLength = 0;
-			boolean done = false;
-
-			while (!done) {
-				inLength = inputStream.read(inBytes);
-				if (inLength == blockSize) {
-					try {
-						int outLength = dcipher.update(inBytes, 0, blockSize, outBytes);
-						outputStream.write(outBytes, 0, outLength);
-					} catch (ShortBufferException e) {
-						e.printStackTrace();
-					}
-				} else
-					done = true;
-			}
-
-			try {
-				if (inLength > 0)
-					outBytes = dcipher.doFinal(inBytes, 0, inLength);
-				else
-					outBytes = dcipher.doFinal();
-				outputStream.write(outBytes);
-			} catch (IllegalBlockSizeException e) {
-				e.printStackTrace();
-			} catch (BadPaddingException e) {
-				e.printStackTrace();
-			}
+			doDecipherStreams(inputStream, outputStream, dcipher);
 
 			inputStream.close();
 			outputStream.flush();
@@ -583,8 +543,13 @@ public class QNAPFileDecrypterEngine {
 		boolean decipherSuccess = false;
 		try {
 			// Create files streams
-			final FileOutputStream outputStream = new FileOutputStream(plainFile);
-			final FileInputStream inputStream = new FileInputStream(cipherFile);
+			final FileOutputStream outputStream;
+			if (cipherFile.getName().endsWith(QNAP_BZ2_EXTENSION)) {
+				outputStream = new FileOutputStream(plainFile.getAbsolutePath() + TEMP_SUFFIX);
+			} else {
+				outputStream = new FileOutputStream(plainFile);
+			}
+			final InputStream inputStream = new FileInputStream(cipherFile);
 
 			// --- read base 64 encoded file ---
 			byte[] salt = new byte[SALT_SIZE];
@@ -605,61 +570,31 @@ public class QNAPFileDecrypterEngine {
 			IvParameterSpec iv = new IvParameterSpec(keyAndIV[INDEX_IV]);
 
 			// --- initialize cipher instance and decrypt ---
-
 			cipher.init(Cipher.DECRYPT_MODE, key, iv);
 
 			// Read data
 			int blockSize = cipher.getBlockSize() * cipher.getBlockSize();
-			int outputSize = cipher.getOutputSize(blockSize);
-
-			// Fix ShortBufferException problem on Android with OpenSSL Provider like
-			// described here :
-			// https: //
-			// blog.osom.info/2014/07/symmetric-encryption-issue-in-android-43.html
-			if (cipher.getProvider().getName().contains("AndroidOpenSSL")) {
-				outputSize += cipher.getBlockSize();
-			}
-
-			byte[] inBytes = new byte[blockSize];
-			byte[] outBytes = new byte[outputSize];
-
-			if (verboseMode) {
-				System.err.println("Use provider : " + cipher.getProvider().getName() + " - Use block cipher size : "
-						+ cipher.getBlockSize() + " - Use Inputt buffer block size : " + blockSize
-						+ " - Use Output buffer size : " + outputSize);
-			}
-
-			int inLength = 0;
-			boolean done = false;
-
-			while (!done) {
-				inLength = inputStream.read(inBytes);
-				if (inLength == blockSize) {
-					try {
-						int outLength = cipher.update(inBytes, 0, blockSize, outBytes);
-						outputStream.write(outBytes, 0, outLength);
-					} catch (ShortBufferException e) {
-						e.printStackTrace();
-					}
-				} else
-					done = true;
-			}
-
-			try {
-				if (inLength > 0)
-					outBytes = cipher.doFinal(inBytes, 0, inLength);
-				else
-					outBytes = cipher.doFinal();
-				outputStream.write(outBytes);
-			} catch (IllegalBlockSizeException e) {
-				e.printStackTrace();
-			} catch (BadPaddingException e) {
-				e.printStackTrace();
-			}
+			doDecipherStreams(inputStream, outputStream, cipher);
 
 			inputStream.close();
 			outputStream.flush();
 			outputStream.close();
+
+			if (cipherFile.getName().endsWith(QNAP_BZ2_EXTENSION)) {
+				if (verboseMode) {
+					System.out.println("Deciphering ok, decompress file...");
+				}
+				try (InputStream in = new BZip2InputStream(
+						new FileInputStream(plainFile.getAbsolutePath() + TEMP_SUFFIX), false)) {
+					try (FileOutputStream out = new FileOutputStream(plainFile)) {
+						byte[] buffer = new byte[blockSize];
+						int len;
+						while ((len = in.read(buffer)) != -1) {
+							out.write(buffer, 0, len);
+						}
+					}
+				}
+			}
 
 			decipherSuccess = true;
 		} catch (GeneralSecurityException | IOException e) {
@@ -668,6 +603,11 @@ public class QNAPFileDecrypterEngine {
 				e.printStackTrace();
 			}
 			return false;
+		} finally {
+			File outputEndFile = new File(plainFile.getAbsolutePath() + TEMP_SUFFIX);
+			if (outputEndFile.exists()) {
+				outputEndFile.delete();
+			}
 		}
 
 		return decipherSuccess;
@@ -701,6 +641,57 @@ public class QNAPFileDecrypterEngine {
 
 		} catch (final GeneralSecurityException exc) {
 			throw exc;
+		}
+	}
+
+	private void doDecipherStreams(final InputStream inputStream, final OutputStream outputStream, Cipher dcipher)
+			throws IOException {
+		// Read data
+		int blockSize = dcipher.getBlockSize() * dcipher.getBlockSize();
+		int outputSize = dcipher.getOutputSize(blockSize);
+
+		// Fix ShortBufferException problem on Android with OpenSSL Provider like
+		// described here :
+		// https://blog.osom.info/2014/07/symmetric-encryption-issue-in-android-43.html
+		if (dcipher.getProvider().getName().contains("AndroidOpenSSL")) {
+			outputSize += dcipher.getBlockSize();
+		}
+
+		byte[] inBytes = new byte[blockSize];
+		byte[] outBytes = new byte[outputSize];
+
+		if (verboseMode) {
+			System.err.println("Use provider : " + dcipher.getProvider().getName() + " - Use block cipher size : "
+					+ dcipher.getBlockSize() + " - Use Inputt buffer block size : " + blockSize
+					+ " - Use Output buffer size : " + outputSize);
+		}
+
+		int inLength = 0;
+		boolean done = false;
+
+		while (!done) {
+			inLength = inputStream.read(inBytes);
+			if (inLength == blockSize) {
+				try {
+					int outLength = dcipher.update(inBytes, 0, blockSize, outBytes);
+					outputStream.write(outBytes, 0, outLength);
+				} catch (ShortBufferException e) {
+					e.printStackTrace();
+				}
+			} else
+				done = true;
+		}
+
+		try {
+			if (inLength > 0)
+				outBytes = dcipher.doFinal(inBytes, 0, inLength);
+			else
+				outBytes = dcipher.doFinal();
+			outputStream.write(outBytes);
+		} catch (IllegalBlockSizeException e) {
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			e.printStackTrace();
 		}
 	}
 
