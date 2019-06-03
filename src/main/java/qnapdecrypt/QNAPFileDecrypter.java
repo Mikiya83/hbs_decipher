@@ -182,13 +182,28 @@ public class QNAPFileDecrypter {
 			File outputFile = plainFile;
 			if (plainFile.isDirectory()) {
 				if (plainFile.equals(cipherFile.getParentFile())) {
-					outputFile = new File(plainFile + File.separator + PLAIN_NAME_PREFIX + cipherFile.getName());
+					if (cipherFile.getName().endsWith(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION)) {
+						outputFile = new File(plainFile + File.separator + PLAIN_NAME_PREFIX
+								+ cipherFile.getName().replaceAll(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION, ""));
+					} else {
+						outputFile = new File(plainFile + File.separator + PLAIN_NAME_PREFIX + cipherFile.getName());
+					}
 				} else {
-					outputFile = new File(plainFile + File.separator + cipherFile.getName());
+					if (cipherFile.getName().endsWith(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION)) {
+						outputFile = new File(plainFile + File.separator
+								+ cipherFile.getName().replaceAll(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION, ""));
+					} else {
+						outputFile = new File(plainFile + File.separator + cipherFile.getName());
+					}
 				}
 			} else if (cipherFile.equals(plainFile)) {
-				outputFile = new File(
-						plainFile.getParent() + File.separator + PLAIN_NAME_PREFIX + cipherFile.getName());
+				if (cipherFile.getName().endsWith(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION)) {
+					outputFile = new File(plainFile.getParent() + File.separator + PLAIN_NAME_PREFIX
+							+ cipherFile.getName().replaceAll(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION, ""));
+				} else {
+					outputFile = new File(
+							plainFile.getParent() + File.separator + PLAIN_NAME_PREFIX + cipherFile.getName());
+				}
 			}
 			engine.doDecipherFile(cipherFile, outputFile, password);
 		} else {
@@ -228,7 +243,12 @@ public class QNAPFileDecrypter {
 
 			String eachPlainFileName = eachCipheredFileName;
 			if (cipherDir.equals(plainDir)) {
-				eachPlainFileName = PLAIN_NAME_PREFIX + eachCipheredFileName;
+				if (eachCipheredFileName.endsWith(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION)) {
+					eachPlainFileName = PLAIN_NAME_PREFIX
+							+ eachCipheredFileName.replaceAll(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION, "");
+				} else {
+					eachPlainFileName = PLAIN_NAME_PREFIX + eachCipheredFileName;
+				}
 			}
 			File eachCipherFile = new File(cipherDir + File.separator + eachCipheredFileName);
 			File eachPlainFile = new File(plainDir + File.separator + eachPlainFileName);
