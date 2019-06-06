@@ -16,7 +16,7 @@ Tool under GNU version 3 license.
 
 # Signing:
 
-All files in my releases are signed with public key : https://keybase.io/yoannttz/pgp_keys.asc
+All files in my releases are signed with public key : https://keybase.io/yoannttz/pgp_keys.asc?fingerprint=a01357e69dd3cb79274d3d25e9f568afd4d56c13
 
 # Description:
 
