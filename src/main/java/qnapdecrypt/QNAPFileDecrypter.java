@@ -249,6 +249,8 @@ public class QNAPFileDecrypter {
 				} else {
 					eachPlainFileName = PLAIN_NAME_PREFIX + eachCipheredFileName;
 				}
+			} else if (eachPlainFileName.endsWith(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION)) {
+				eachPlainFileName = eachCipheredFileName.replaceAll(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION, "");
 			}
 			File eachCipherFile = new File(cipherDir + File.separator + eachCipheredFileName);
 			File eachPlainFile = new File(plainDir + File.separator + eachPlainFileName);
