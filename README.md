@@ -7,6 +7,8 @@ I've made this tool with some ideas : light (<1MB), fast (<3s for 300MB on my co
 
 This software is provided without any warranties, use it at your own risk.
 
+*Starting from 1.16, this tool can be used not only with files from "Sync" tasks but also with files from "Backup" tasks in HBS.*
+
 ![Cat](../assets/hbs_gui.jpg)
 ![Cat](../assets/hbs_cli.JPG)
 
